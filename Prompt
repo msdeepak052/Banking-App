@@ -1,0 +1,78 @@
+echo "# Banking-App" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/msdeepak052/Banking-App.git
+git push -u origin main
+
+
+Real-Time DevOps Banking App Project
+
+    I want to build a real-time DevOps project using a CI/CD pipeline. For this, I need a sample three-tier banking application similar to HDFC or ICICI net banking.
+
+    The application should:
+
+        Be built using Python, Node.js, or Java (any of these is fine).
+
+        Follow a three-tier architecture:
+
+            Web Tier – Handles UI and login (e.g., HTML/CSS/JavaScript).
+
+            App Tier – Backend logic in Python/Node/Java.
+
+            DB Tier – Use Microsoft SQL Server (MSSQL).
+
+        Have a working login system, where username and password are stored in the application code.
+
+        Allow users to:
+
+            Log in
+
+            Save data (e.g., user details, dummy transaction info)
+
+            Perform dummy transactions
+
+            View a transaction statement
+
+    Requirements:
+
+        Step-by-step instructions to develop the application, including:
+
+            Web layer
+
+            Application layer
+
+            Database schema (MSSQL)
+
+        The application must connect to pods in Kubernetes, and be fully functional within that environment.
+
+        Each component (web, app, db) should be containerized using Docker and then:
+
+            Packaged as separate images
+
+            Deployed into a Kubernetes cluster
+
+        There should be a proper CI/CD pipeline set up to:
+
+            Build
+
+            Test
+
+            Push images to a registry (e.g., Docker Hub)
+
+            Deploy into Kubernetes using tools like Jenkins, GitHub Actions, or Azure DevOps
+
+    Please provide thorough, step-by-step instructions for:
+
+        Application development (with proper folder structure)
+
+        MSSQL DB configuration
+
+        Dockerization of all tiers
+
+        Kubernetes deployment manifests (YAML files)
+
+        CI/CD pipeline setup
+
+    The final goal is to have a fully functional banking web app running on Kubernetes, using a CI/CD pipeline and capable of real login and dummy transactions.
