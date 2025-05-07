@@ -1,0 +1,254 @@
+Steps
+
+Using Flask, we'll handle user authentication, data processing, and interaction with the MSSQL database.
+
+app.py:
+
+from flask import Flask, render_template, request, redirect, session
+import pyodbc
+
+app = Flask(__name__)
+app.secret_key = 'your_secret_key'
+
+# Database connection
+conn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};SERVER=db;DATABASE=banking;UID=sa;PWD=yourStrong(!)Password')
+cursor = conn.cursor()
+
+@app.route('/')
+def index():
+    return render_template('login.html')
+
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.form['username']
+    password = request.form['password']
+    cursor.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
+    user = cursor.fetchone()
+    if user:
+        session['username'] = username
+        return redirect('/dashboard')
+    return 'Invalid credentials'
+
+@app.route('/dashboard')
+def dashboard():
+    if 'username' in session:
+        return render_template('dashboard.html', username=session['username'])
+    return redirect('/')
+
+@app.route('/transaction', methods=['POST'])
+def transaction():
+    # Handle dummy transaction logic
+    pass
+
+@app.route('/transactions')
+def transactions():
+    # Display transaction statements
+    pass
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0')
+
+requirements.txt:
+
+Flask
+pyodbc
+
+🗄️ Database Layer (MSSQL)
+
+init.sql:
+
+CREATE DATABASE banking;
+GO
+USE banking;
+GO
+CREATE TABLE users (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    username NVARCHAR(50) NOT NULL,
+    password NVARCHAR(50) NOT NULL
+);
+CREATE TABLE transactions (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    user_id INT,
+    amount DECIMAL(10,2),
+    timestamp DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+🐳 2. Dockerization
+📄 Dockerfile
+
+FROM python:3.9-slim
+
+WORKDIR /app
+
+COPY app/ /app/
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+CMD ["python", "app.py"]
+
+🐳 docker-compose.yml
+
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    environment:
+      - FLASK_ENV=development
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      SA_PASSWORD: "yourStrong(!)Password"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+
+volumes:
+  mssql-data:
+
+☸️ 3. Kubernetes Deployment
+📄 Deployment Manifests
+
+web-deployment.yaml:
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+      - name: web
+        image: your_dockerhub_username/banking-web:latest
+        ports:
+        - containerPort: 5000
+
+web-service.yaml:
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+
+db-deployment.yaml:
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - name: db
+        image: mcr.microsoft.com/mssql/server:2019-latest
+        ports:
+        - containerPort: 1433
+        env:
+        - name: SA_PASSWORD
+          value: "yourStrong(!)Password"
+        - name: ACCEPT_EULA
+          value: "Y"
+
+db-service.yaml:
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-service
+spec:
+  selector:
+    app: db
+  ports:
+    - protocol: TCP
+      port: 1433
+      targetPort: 1433
+
+🔁 4. CI/CD Pipeline with GitHub Actions
+📄 .github/workflows/deploy.yml
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and Push Docker Image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: true
+        tags: your_dockerhub_username/banking-web:latest
+
+    - name: Set up Kubectl
+      uses: azure/setup-kubectl@v1
+      with:
+        version: 'v1.20.0'
+
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f k8s/web-deployment.yaml
+        kubectl apply -f k8s/web-service.yaml
+
+Note: Ensure you have your Kubernetes context configured and accessible in the GitHub Actions runner, possibly by using a service account and storing the kubeconfig as a secret.
+✅ Final Steps
+
+    Initialize the Database: After deploying MSSQL, run the init.sql script to set up the database schema.
+
+    Access the Application: Once deployed, access the application via the LoadBalancer IP provided by the web-service.
+
+    Test Functionality: Ensure that login, dummy transactions, and transaction statements work as expected.
+
+By following these steps, you'll have a fully functional three-tier banking application deployed on Kubernetes with an integrated CI/CD pipeline using GitHub Actions. This setup not only mirrors real-world banking applications but also provides a robust framework for learning and extending DevOps practices.
+
+If you need further assistance or have specific questions about any part of this setup, feel free to ask!
+
+
